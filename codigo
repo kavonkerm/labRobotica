@@ -21,6 +21,17 @@ const int B_ENB = 6; // PWM
 // ——— Objeto del sensor MPU-9250 ———
 MPU9250_asukiaaa mpu;
 
+// Variables para la cinemática diferencial
+float velocidadMotorA = 200; // Velocidad del motor A
+float velocidadMotorB = 200; // Velocidad del motor B
+float distanciaRecorrida = 0; // Distancia recorrida (en cm)
+float anguloInclinacion = 0; // Ángulo de inclinación del robot
+float anguloRobot = 0; // Dirección del robot en grados
+
+// Tiempo para la estimación de la posición
+unsigned long tiempoAnterior = 0;
+unsigned long tiempoTranscurrido = 0;
+
 void setup() {
   Serial.begin(115200);
 
@@ -52,6 +63,11 @@ void setup() {
 }
 
 void loop() {
+  // Obtener el tiempo transcurrido
+  unsigned long tiempoActual = millis();
+  tiempoTranscurrido = tiempoActual - tiempoAnterior;
+  tiempoAnterior = tiempoActual;
+
   // ——— Leer sensor ultrasónico ———
   digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
@@ -62,47 +78,75 @@ void loop() {
   long duration = pulseIn(echoPin, HIGH, 30000); // Máximo 30ms
   long distance = duration * 0.0344 / 2;
 
-  // ——— Leer datos del MPU-9250 ———
+  // ——— Leer datos del MPU-9250 (Acelerómetro y Giroscopio) ———
   mpu.accelUpdate();
   mpu.gyroUpdate();
+
+  // Obtener el ángulo de inclinación
+  anguloInclinacion = mpu.accelX(); // Usando el valor de aceleración en el eje X para estimar inclinación
+  anguloRobot = mpu.gyroZ(); // El valor de giroscopio Z para estimar el ángulo de giro
 
   // ——— Imprimir datos en el monitor serie ———
   Serial.print("Distancia: ");
   Serial.print(distance);
-  Serial.print(" cm | Accel X: ");
-  Serial.print(mpu.accelX());
-  Serial.print(" | Gyro Z: ");
-  Serial.println(mpu.gyroZ());
+  Serial.print(" cm | Inclinación: ");
+  Serial.print(anguloInclinacion);
+  Serial.print(" | Giro: ");
+  Serial.println(anguloRobot);
 
-  // ——— Lógica de evasión ———
+  // ——— Lógica de evasión y ajuste de dirección ———
   if (distance <= distanciaUmbral && distance > 0) {
     digitalWrite(ledPin, HIGH);
     retroceder();
   } else {
     digitalWrite(ledPin, LOW);
+    ajustarDireccion();
     avanzar();
   }
+
+  // Estimación de la distancia recorrida (simplificada)
+  distanciaRecorrida += velocidadMotorA * (tiempoTranscurrido / 1000.0); // Distancia estimada en cm
 
   delay(300);
 }
 
-// ——— Funciones de movimiento ———
-void avanzar() {
-  digitalWrite(A_IN1, HIGH);
-  digitalWrite(A_IN2, LOW);
-  analogWrite(A_ENA, 200);
-
-  digitalWrite(B_IN3, HIGH);
-  digitalWrite(B_IN4, LOW);
-  analogWrite(B_ENB, 200);
+// ——— Función para ajustar la dirección usando el IMU ———
+void ajustarDireccion() {
+  // Aquí corregimos el ángulo de movimiento basado en el valor del giroscopio
+  if (anguloRobot > 5) {
+    // Si el robot está girando a la derecha, reducimos la velocidad del motor B para corregir
+    velocidadMotorB = 150;
+    velocidadMotorA = 200;
+  } else if (anguloRobot < -5) {
+    // Si el robot está girando a la izquierda, reducimos la velocidad del motor A para corregir
+    velocidadMotorA = 150;
+    velocidadMotorB = 200;
+  } else {
+    // Si está alineado, mantenemos la misma velocidad
+    velocidadMotorA = 200;
+    velocidadMotorB = 200;
+  }
 }
 
-void retroceder() {
+// ——— Funciones de movimiento ———
+void avanzar() {
   digitalWrite(A_IN1, LOW);
   digitalWrite(A_IN2, HIGH);
-  analogWrite(A_ENA, 200);
+  analogWrite(A_ENA, velocidadMotorA);
 
   digitalWrite(B_IN3, LOW);
   digitalWrite(B_IN4, HIGH);
-  analogWrite(B_ENB, 200);
+  analogWrite(B_ENB, velocidadMotorB);
+}
+
+void retroceder() {
+
+  
+  digitalWrite(A_IN1, HIGH);
+  digitalWrite(A_IN2, LOW);
+  analogWrite(A_ENA, velocidadMotorA);
+
+  digitalWrite(B_IN3, HIGH);
+  digitalWrite(B_IN4, LOW);
+  analogWrite(B_ENB, velocidadMotorB);
 }
