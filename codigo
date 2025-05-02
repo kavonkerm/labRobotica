@@ -1,0 +1,108 @@
+#include <Wire.h>
+#include <MPU9250_asukiaaa.h>
+
+// ——— Pines del HC-SR04 y LED ———
+const int trigPin = 9;
+const int echoPin = 8;
+const int ledPin = 13;
+const int distanciaUmbral = 20; // cm
+
+// ——— Pines del L298N para Motores ———
+// Motor A
+const int A_IN1 = 2;
+const int A_IN2 = 4;
+const int A_ENA = 3; // PWM
+
+// Motor B
+const int B_IN3 = 5;
+const int B_IN4 = 7;
+const int B_ENB = 6; // PWM
+
+// ——— Objeto del sensor MPU-9250 ———
+MPU9250_asukiaaa mpu;
+
+void setup() {
+  Serial.begin(115200);
+
+  // Inicialización del sensor ultrasónico y LED
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  pinMode(ledPin, OUTPUT);
+
+  // Inicialización de pines de motor
+  pinMode(A_IN1, OUTPUT);
+  pinMode(A_IN2, OUTPUT);
+  pinMode(A_ENA, OUTPUT);
+
+  pinMode(B_IN3, OUTPUT);
+  pinMode(B_IN4, OUTPUT);
+  pinMode(B_ENB, OUTPUT);
+
+  // Inicialización del MPU-9250
+  Wire.begin();
+  mpu.setWire(&Wire);
+  mpu.beginAccel();
+  mpu.beginGyro();
+
+  if (!mpu.accelUpdate() || !mpu.gyroUpdate()) {
+    Serial.println("No se detecta el MPU-6500");
+  } else {
+    Serial.println("MPU-6500 detectado correctamente");
+  }
+}
+
+void loop() {
+  // ——— Leer sensor ultrasónico ———
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH, 30000); // Máximo 30ms
+  long distance = duration * 0.0344 / 2;
+
+  // ——— Leer datos del MPU-9250 ———
+  mpu.accelUpdate();
+  mpu.gyroUpdate();
+
+  // ——— Imprimir datos en el monitor serie ———
+  Serial.print("Distancia: ");
+  Serial.print(distance);
+  Serial.print(" cm | Accel X: ");
+  Serial.print(mpu.accelX());
+  Serial.print(" | Gyro Z: ");
+  Serial.println(mpu.gyroZ());
+
+  // ——— Lógica de evasión ———
+  if (distance <= distanciaUmbral && distance > 0) {
+    digitalWrite(ledPin, HIGH);
+    retroceder();
+  } else {
+    digitalWrite(ledPin, LOW);
+    avanzar();
+  }
+
+  delay(300);
+}
+
+// ——— Funciones de movimiento ———
+void avanzar() {
+  digitalWrite(A_IN1, HIGH);
+  digitalWrite(A_IN2, LOW);
+  analogWrite(A_ENA, 200);
+
+  digitalWrite(B_IN3, HIGH);
+  digitalWrite(B_IN4, LOW);
+  analogWrite(B_ENB, 200);
+}
+
+void retroceder() {
+  digitalWrite(A_IN1, LOW);
+  digitalWrite(A_IN2, HIGH);
+  analogWrite(A_ENA, 200);
+
+  digitalWrite(B_IN3, LOW);
+  digitalWrite(B_IN4, HIGH);
+  analogWrite(B_ENB, 200);
+}
