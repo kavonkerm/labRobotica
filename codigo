@@ -1,5 +1,6 @@
 #include <Wire.h>
 #include <MPU9250_asukiaaa.h>
+#include <Servo.h> // Librería para el servomotor
 
 // ——— Pines del HC-SR04 y LED ———
 const int trigPin = 9;
@@ -9,37 +10,38 @@ const int distanciaUmbral = 20; // cm
 
 // ——— Pines del L298N para Motores ———
 // Motor A
-const int A_IN1 = 2;
-const int A_IN2 = 4;
+const int A_IN1 = 7;
+const int A_IN2 = 6;
 const int A_ENA = 3; // PWM
 
 // Motor B
 const int B_IN3 = 5;
-const int B_IN4 = 7;
-const int B_ENB = 6; // PWM
+const int B_IN4 = 4;
+const int B_ENB = 11; // PWM
+
+// ——— Servo para mover sensor ultrasónico ———
+const int pinServo = 10;
+Servo servoSensor;
 
 // ——— Objeto del sensor MPU-9250 ———
 MPU9250_asukiaaa mpu;
 
 // Variables de movimiento y orientación
 float velocidadMotorA = 200;
-float velocidadMotorB = 200;
+float velocidadMotorB = 210;  
 float anguloInclinacion = 0;
 float anguloRobot = 0;
 
 unsigned long tiempoAnterior = 0;
 unsigned long tiempoTranscurrido = 0;
-
-// Control del avance
 unsigned long tiempoInicioAvance = 0;
-unsigned long duracionAvance = 0;
-bool avanzando = false;
-bool retrocediendo = false;
 
+bool avanzando = false;
+
+// ——— Setup ———
 void setup() {
   Serial.begin(115200);
 
-  // Inicialización de sensores y motores
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
   pinMode(ledPin, OUTPUT);
@@ -62,31 +64,25 @@ void setup() {
   } else {
     Serial.println("MPU-6500 detectado correctamente");
   }
+
+  // Inicializar servo
+  servoSensor.attach(pinServo);
+  servoSensor.write(90); // Centro
 }
 
+// ——— Loop principal ———
 void loop() {
-  // Tiempo actual
   unsigned long tiempoActual = millis();
   tiempoTranscurrido = tiempoActual - tiempoAnterior;
   tiempoAnterior = tiempoActual;
 
-  // Leer sensor ultrasónico
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-
-  long duration = pulseIn(echoPin, HIGH, 30000);
-  long distance = duration * 0.0344 / 2;
-
-  // Leer datos del IMU
   mpu.accelUpdate();
   mpu.gyroUpdate();
   anguloInclinacion = mpu.accelX();
   anguloRobot = mpu.gyroZ();
 
-  // Imprimir info
+  long distance = medirDistancia();
+
   Serial.print("Distancia: ");
   Serial.print(distance);
   Serial.print(" cm | Inclinación: ");
@@ -94,47 +90,36 @@ void loop() {
   Serial.print(" | Giro: ");
   Serial.println(anguloRobot);
 
-  // Si detecta obstáculo y no está retrocediendo
-  if (distance <= distanciaUmbral && distance > 0 && !retrocediendo) {
+  if (distance <= distanciaUmbral && distance > 0) {
     digitalWrite(ledPin, HIGH);
-    duracionAvance = millis() - tiempoInicioAvance;
-    Serial.print("Retrocediendo por: ");
-    Serial.print(duracionAvance);
-    Serial.println(" ms");
-    retroceder(duracionAvance);  // Retrocede el mismo tiempo
-    retrocediendo = true;
+    Serial.println("Obstáculo detectado. Ejecutando maniobra...");
+    evitarObstaculo();
     avanzando = false;
-  }
-  else if (distance > distanciaUmbral && !retrocediendo) {
+  } else {
     digitalWrite(ledPin, LOW);
-
     if (!avanzando) {
-      tiempoInicioAvance = millis(); // Inicia conteo
+      tiempoInicioAvance = millis();
       avanzando = true;
     }
-
-    ajustarDireccion();
-    avanzar();
+    avanzar();          
   }
 
   delay(100);
 }
 
-// ——— Corrección de dirección ———
-void ajustarDireccion() {
-  if (anguloRobot > 5) {
-    velocidadMotorB = 200;
-    velocidadMotorA = 200;
-  } else if (anguloRobot < -5) {
-    velocidadMotorA = 200;
-    velocidadMotorB = 200;
-  } else {
-    velocidadMotorA = 200;
-    velocidadMotorB = 200;
-  }
+// ——— Medir distancia frontal ———
+long medirDistancia() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH, 30000);
+  return duration * 0.0344 / 2;
 }
 
-// ——— Movimiento hacia adelante ———
+// ——— Avanzar ———
 void avanzar() {
   digitalWrite(A_IN1, LOW);
   digitalWrite(A_IN2, HIGH);
@@ -145,7 +130,7 @@ void avanzar() {
   analogWrite(B_ENB, velocidadMotorB);
 }
 
-// ——— Movimiento hacia atrás por duración ———
+// ——— Retroceder ———
 void retroceder(unsigned long duracion) {
   digitalWrite(A_IN1, HIGH);
   digitalWrite(A_IN2, LOW);
@@ -155,16 +140,89 @@ void retroceder(unsigned long duracion) {
   digitalWrite(B_IN4, LOW);
   analogWrite(B_ENB, velocidadMotorB);
 
-  delay(duracion); // Retrocede exactamente el mismo tiempo
-
-  detener(); // Detiene el robot
+  delay(duracion);
 }
 
 // ——— Detener motores ———
 void detener() {
   analogWrite(A_ENA, 0);
   analogWrite(B_ENB, 0);
-  retrocediendo = false;
-  Serial.println("Robot detenido y listo para avanzar.");
 }
 
+// ——— Girar a la izquierda ———
+void girarIzquierda() {
+  digitalWrite(A_IN1, LOW);
+  digitalWrite(A_IN2, HIGH);
+  analogWrite(A_ENA, velocidadMotorA);
+
+  digitalWrite(B_IN3, HIGH);
+  digitalWrite(B_IN4, LOW);
+  analogWrite(B_ENB, velocidadMotorB);
+
+  delay(500);
+  detener();
+}
+
+// ——— Girar a la derecha ———
+void girarDerecha() {
+  digitalWrite(A_IN1, HIGH);
+  digitalWrite(A_IN2, LOW);
+  analogWrite(A_ENA, velocidadMotorA);
+
+  digitalWrite(B_IN3, LOW);
+  digitalWrite(B_IN4, HIGH);
+  analogWrite(B_ENB, velocidadMotorB);
+
+  delay(500);
+  detener();
+}
+
+// ——— Evitar obstáculo ———
+void evitarObstaculo() {
+  while (true) {
+    retroceder(300);
+    detener();
+    delay(200);
+
+    // Medir izquierda
+    servoSensor.write(150);
+    delay(500);
+    long distanciaIzquierda = medirDistancia();
+
+    // Medir derecha
+    servoSensor.write(60);
+    delay(500);
+    long distanciaDerecha = medirDistancia();
+
+    // Volver al centro
+    servoSensor.write(90);
+    delay(200);
+
+    Serial.print("Izquierda: ");
+    Serial.print(distanciaIzquierda);
+    Serial.print(" cm | Derecha: ");
+    Serial.print(distanciaDerecha);
+    Serial.println(" cm");
+
+    if (distanciaIzquierda > distanciaDerecha) {
+      Serial.println("Girando a la izquierda...");
+      girarIzquierda();
+    } else {
+      Serial.println("Girando a la derecha...");
+      girarDerecha();
+    }
+
+    delay(300);
+
+    long nuevaDistancia = medirDistancia();
+    Serial.print("Nueva distancia frontal: ");
+    Serial.println(nuevaDistancia);
+
+    if (nuevaDistancia > distanciaUmbral || nuevaDistancia == 0) {
+      Serial.println("Camino despejado. Continuando...");
+      break;
+    } else {
+      Serial.println("Obstáculo sigue presente. Repitiendo giro...");
+    }
+  }
+}
