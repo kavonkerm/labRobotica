@@ -51,7 +51,7 @@ El video muestra que el robot está conectado únicamente al motor sin ningún t
 El HC-SR04 mide la distancia enviando un pulso ultrasónico (como un eco) y midiendo el tiempo que tarda en regresar. Con eso, calcula la distancia al objeto en centímetros.
 - Ver video [HC-SR04](https://drive.google.com/file/d/1ZQiLPIOMxGB5NAWX91TBa9G4molin876/view?usp=drive_link)
 
-El sensor MPU6050 mide aceleración y giro en los tres ejes, entregando datos crudos sin calibrar. Actualmente detecta la aceleración incluyendo la gravedad y puede registrar giros, lo que permite estimar movimientos e inclinaciones del robot.
+El sensor MPU6050 mide aceleración y giro en los tres ejes, entregando datos crudos sin calibrar. Actualmente detecta la aceleración incluyendo la gravedad y puede registrar giros, lo que permite estimar movimientos e inclinaciones del robot. En el video, se puede apreciar dentro del serial monitor la aceleración y giro de los 3 ejes.
 - Ver video [Mediciones con MPU9250](https://drive.google.com/file/d/13S4bSyBbIjOH7-O_dJMVPuFEedUWHjdR/view?usp=drive_link)
 
 Ahora, se observa al robot desplazándose en línea recta de forma estable gracias al uso del sensor MPU9250, que permite corregir desviaciones de dirección. Además, el sensor ultrasónico HC-SR04 detecta obstáculos en su camino, deteniendo el avance del robot a tiempo para evitar colisiones.
