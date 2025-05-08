@@ -7,7 +7,7 @@
 - Marcelo Flores Coloane
 - Kavon Kermani Órdenes
 - Gabriel Sanzana Cuibin
-- Lucas Zamora Gática
+- Lucas Zamora Gatica
 
 ### Ensamblaje y programación de un robot básico
 
@@ -25,8 +25,10 @@
 
 • Conectar Arduino UNO con el driver de motores y programar el movimiento básico de los motores (adelante, atrás, giro) sin controlar la
 velocidad.
+
 • Verificar el funcionamiento del sensor ultrasónico HC-SR04 midiendo
 distancias.
+
 • Analizar los datos del IMU MPUC6050 para medir inclinación o giros
 del robot.
 
@@ -35,24 +37,27 @@ Este código controla un robot móvil con dos motores y un sensor ultrasónico (
 - Ver el [Codigo Movimiento Motores](Codigo%20movimiento%20Motores%20-%20Lab%201.txt)
 
 El siguiente código de Arduino controla un robot móvil usando sensores ultrasónicos (HC-SR04) para evitar obstáculos, un sensor IMU (MPU9250) para monitorear la orientación, y un controlador de motores (L298N) para moverse hacia adelante o retroceder. 
-- Ver el [Código Mediciones con MPU9250 - Lab 1](Codigo%20mediciones%20con%20MPU9250%20-%20Lab%201.txt)
+- Ver el [Código Mediciones con MPU9250](Codigo%20mediciones%20con%20MPU9250%20-%20Lab%201.txt)
 
 Este código es para un robot móvil autónomo que puede avanzar en línea recta y corregir su dirección si se desvía, utilizando sensores como un ultrasónico (para medir distancia) y un MPU-9250 (para medir la orientación).
-- Ver el [Corrección de inclinación - Lab 1](Codigo%20correcci%C3%B3n%20de%20inclinaci%C3%B3n%20-%20Lab%201.txt).
+- Ver el [Código de Corrección de inclinación](Codigo%20correcci%C3%B3n%20de%20inclinaci%C3%B3n%20-%20Lab%201.txt).
 
 Este código es para un robot móvil que utiliza un sensor MPU9250 (acelerómetro + giroscopio), un sensor ultrasónico HC-SR04 y dos motores controlados con un L298N. El objetivo es medir la distancia que hay entre ese sensor con algún obstáculo con un umbral máximo de 20 cm.
-- Ver el [Código Sensor HC-SR04 medición de distancia - Lab 1](Codigo%20Sensor%20HC-SR04%20medición%20distancia%20-%20Lab%201%20.txt).
+- Ver el [Código Sensor HC-SR04 medición de distancia](Codigo%20Sensor%20HC-SR04%20medición%20distancia%20-%20Lab%201%20.txt).
 
 ## Videos de Demonstración
 
-Poner video 1
-Explicar que el video solo esta conectado al motor y que funciona mal , ya que no es posible ir en linea recta y es dificil ir a la izquierda o la derecha, se puede arreglar con el sensor MPU, tampoco esta funcionando el sensor ultrasonido por lo que se va a chocar.
+El video muestra que el robot está conectado únicamente al motor sin ningún tipo de corrección ni sensores activos. Esto provoca que el movimiento sea inestable: no puede avanzar en línea recta correctamente y le cuesta girar a la izquierda o derecha. Además, el sensor ultrasónico no está funcionando, lo que significa que el robot no detecta obstáculos y podría colisionar.
+- Ver video [Movimiento Motores](https://drive.google.com/file/d/1rvlfn7AYe5uc7ePG8Oa52rlC0vEXbWEq/view?usp=drive_link)
 
-Poner video 2 prueba de sensor ultrasonido
-Explicar que el sensor ahora detecta la distancia por que lo va a detectar colisiones.
+El HC-SR04 mide la distancia enviando un pulso ultrasónico (como un eco) y midiendo el tiempo que tarda en regresar. Con eso, calcula la distancia al objeto en centímetros.
+- Ver video [HC-SR04](https://drive.google.com/file/d/1ZQiLPIOMxGB5NAWX91TBa9G4molin876/view?usp=drive_link)
 
-Poner video 3 prueba de sensor MPU
-Explicar que el sensor ahora detecta aceleracion y giro, son datos sin analizar y sin calibrar (detecta acc de gravedad).
+El sensor MPU6050 mide aceleración y giro en los tres ejes, entregando datos crudos sin calibrar. Actualmente detecta la aceleración incluyendo la gravedad y puede registrar giros, lo que permite estimar movimientos e inclinaciones del robot.
+- Ver video [Mediciones con MPU9250](https://drive.google.com/file/d/13S4bSyBbIjOH7-O_dJMVPuFEedUWHjdR/view?usp=drive_link)
+
+Ahora, se observa al robot desplazándose en línea recta de forma estable gracias al uso del sensor MPU9250, que permite corregir desviaciones de dirección. Además, el sensor ultrasónico HC-SR04 detecta obstáculos en su camino, deteniendo el avance del robot a tiempo para evitar colisiones.
+- Ver video [Corrección Inclinación](https://drive.google.com/file/d/1wutelkcyf8r3Ges70Tnz4q3Cgd25ydZP/view?usp=drive_link)
 
 ## Preguntas
 
