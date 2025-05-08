@@ -1,7 +1,5 @@
 # Laboratorio 1 de Robótica y Sistemas Autónomos - ICI4150
 
-## Repositorio para el desarrollo y documentación de los laboratorios del curso Robótica y Sistemas Autónomos (ICI4150) de la PUCV, semestre 2025-01.
-
 ### Integrantes del grupo
 - Patricio Figueroa Gallardo
 - Marcelo Flores Coloane
