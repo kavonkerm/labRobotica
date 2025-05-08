@@ -32,7 +32,7 @@ del robot.
 
 ## Código Utilizado
 Este código controla un robot móvil con dos motores y un sensor ultrasónico (HC-SR04), usando un puente H (L298N)
-- Ver el [Codigo Movimiento Motores](labRobotica/Codigo%20movimiento%20Motores%20-%20Lab%201.txt)
+- Ver el [Codigo Movimiento Motores](Codigo%20movimiento%20Motores%20-%20Lab%201.txt)
 
 El siguiente código de Arduino controla un robot móvil usando sensores ultrasónicos (HC-SR04) para evitar obstáculos, un sensor IMU (MPU9250) para monitorear la orientación, y un controlador de motores (L298N) para moverse hacia adelante o retroceder. 
 - Ver el [Código Mediciones con MPU9250 - Lab 1](Codigo%20mediciones%20con%20MPU9250%20-%20Lab%201.txt)
