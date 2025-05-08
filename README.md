@@ -38,7 +38,7 @@ El siguiente código de Arduino controla un robot móvil usando sensores ultras�
 - Ver el [Código Mediciones con MPU9250](Codigo%20mediciones%20con%20MPU9250%20-%20Lab%201.txt)
 
 Este código es para un robot móvil autónomo que puede avanzar en línea recta y corregir su dirección si se desvía, utilizando sensores como un ultrasónico (para medir distancia) y un MPU-9250 (para medir la orientación).
-- Ver el [Código de Corrección de inclinación](Codigo%20correcci%C3%B3n%20de%20inclinaci%C3%B3n%20-%20Lab%201.txt).
+- Ver el [Código de Corrección de inclinación](Codigo%20correccion%20de%20inclinacion%20-%20Lab%201.txt).
 
 Este código es para un robot móvil que utiliza un sensor MPU9250 (acelerómetro + giroscopio), un sensor ultrasónico HC-SR04 y dos motores controlados con un L298N. El objetivo es medir la distancia que hay entre ese sensor con algún obstáculo con un umbral máximo de 20 cm.
 - Ver el [Código Sensor HC-SR04 medición de distancia](Codigo%20Sensor%20HC-SR04%20medición%20distancia%20-%20Lab%201%20.txt).
