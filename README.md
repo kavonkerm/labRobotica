@@ -3,11 +3,11 @@
 ## Repositorio para el desarrollo y documentación de los laboratorios del curso Robótica y Sistemas Autónomos (ICI4150) de la PUCV, semestre 2025-01.
 
 ### Integrantes del grupo
-- Patricio Figueroa
-- Marcelo Flores
-- Kavon Kermani
-- Gabriel Sanzana
-- Lucas Zamora
+- Patricio Figueroa Gallardo
+- Marcelo Flores Coloane
+- Kavon Kermani Órdenes
+- Gabriel Sanzana Cuibin
+- Lucas Zamora Gática
 
 ### Ensamblaje y programación de un robot básico
 
@@ -62,6 +62,8 @@ PWM (Modulación por Ancho de Pulso) es una técnica para controlar la energía 
 5. ¿Cómo afecta el control de velocidad a la precisión de la navegación sin encoders?
 El control de velocidad usando PWM mejora la navegación incluso sin encoders, ya que permite equilibrar la velocidad de ambos motores, reduciendo desviaciones. Sin embargo, al no tener retroalimentación real de la posición, sigue existiendo un margen de error, especialmente en trayectorias largas o en condiciones variables (batería baja, peso desigual, etc.).
 
+****
+
 ## Parte 2: Cinemática y Dinámica de Robots Móviles Usando un IMU
 
 • Aplicar la ecuación de cinemática diferencial para estimar la posición del robot usando tiempo y velocidad de motores.
@@ -75,12 +77,17 @@ El control de velocidad usando PWM mejora la navegación incluso sin encoders, y
 ## Preguntas
 
 1. ¿Cómo se calcula la velocidad del robot sin encoders usando PWM?
+La velocidad se calcula de forma empírica midiendo cuánto se desplaza el robot en un intervalo de tiempo a un determinado valor de PWM. Esta estimación se basa en la fórmula 
+velocidad = distancia/tiempo, lo que permite asociar ciertos valores de PWM a velocidades aproximadas del robot.
 
 2. ¿Cómo factores afectan la trayectoria y velocidad del robot al cambiar los intervalos de tiempo?
+Al cambiar los intervalos de tiempo de activación de los motores, influyen factores como el desbalance entre motores, la diferencia de velocidad de estas mismas, la fricción del suelo, variaciones en el voltaje de la batería y la duración misma del tiempo aplicado. Estos factores pueden provocar desviaciones y afectar la precisión del desplazamiento.
 
-3. ¿Cuáles son las ventajas y desventajas de usar un IMU para ajustar la dirección en lugar de encoders?
+4. ¿Cuáles son las ventajas y desventajas de usar un IMU para ajustar la dirección en lugar de encoders?
+Algunas ventajas de usar un IMU hace que se pueda detectar giros e inclinaciones sin necesidad de contacto físico con las ruedas, lo que es útil en terrenos irregulares. Sin embargo, sufre de menor precisión frente a los encoders, puede presentar ruido y deriva en las mediciones, y requiere calibración para funcionar correctamente.
 
-4. ¿Qué efecto tiene la inclinación o el giro en el movimiento del robot, y cómo se corrige con el IMU?
+5. ¿Qué efecto tiene la inclinación o el giro en el movimiento del robot, y cómo se corrige con el IMU?
+La inclinación o el giro desvían al robot de su trayectoria deseada. Utilizando los datos recopilados del IMU, como el ángulo de giro en el eje Z, donde, se hace posible detectar estas desviaciones y ajustar la velocidad de cada motor mediante PWM para corregir el rumbo y mantener un movimiento recto.
 
 
 
