@@ -1,0 +1,175 @@
+#include <Wire.h>
+#include <MPU9250_asukiaaa.h>
+
+// ——— Pines del HC-SR04 y LED ———
+const int trigPin = 9;
+const int echoPin = 8;
+const int ledPin = 13;
+const int distanciaUmbral = 20; // cm
+
+// ——— Pines del L298N para Motores ———
+// Motor A
+const int A_IN1 = 2;
+const int A_IN2 = 4;
+const int A_ENA = 3; // PWM
+
+// Motor B
+const int B_IN3 = 5;
+const int B_IN4 = 7;
+const int B_ENB = 6; // PWM
+
+// ——— Objeto del sensor MPU-9250 ———
+MPU9250_asukiaaa mpu;
+
+// Variables de movimiento y orientación
+float velocidadMotorA = 200;
+float velocidadMotorB = 200;
+float anguloInclinacion = 0;
+float anguloRobot = 0;
+
+unsigned long tiempoAnterior = 0;
+unsigned long tiempoTranscurrido = 0;
+
+// Control del avance
+unsigned long tiempoInicioAvance = 0;
+unsigned long duracionAvance = 0;
+bool avanzando = false;
+bool retrocediendo = false;
+
+void setup() {
+  Serial.begin(9600);
+
+  // Inicialización de sensores y motores
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  pinMode(ledPin, OUTPUT);
+
+  pinMode(A_IN1, OUTPUT);
+  pinMode(A_IN2, OUTPUT);
+  pinMode(A_ENA, OUTPUT);
+
+  pinMode(B_IN3, OUTPUT);
+  pinMode(B_IN4, OUTPUT);
+  pinMode(B_ENB, OUTPUT);
+
+  Wire.begin();
+  mpu.setWire(&Wire);
+  mpu.beginAccel();
+  mpu.beginGyro();
+
+  if (!mpu.accelUpdate() || !mpu.gyroUpdate()) {
+    Serial.println("No se detecta el MPU-6500");
+  } else {
+    Serial.println("MPU-6500 detectado correctamente");
+  }
+}
+
+void loop() {
+  // Tiempo actual
+  unsigned long tiempoActual = millis();
+  tiempoTranscurrido = tiempoActual - tiempoAnterior;
+  tiempoAnterior = tiempoActual;
+
+  // Leer sensor ultrasónico
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH, 30000);
+  long distance = duration * 0.0344 / 2;
+
+  // Leer datos del IMU
+  mpu.accelUpdate();
+  mpu.gyroUpdate();
+
+  // Mostrar aceleración en X, Y, Z
+  Serial.print("Aceleración [X,Y,Z]: ");
+  Serial.print(mpu.accelX(), 2); Serial.print(" / ");
+  Serial.print(mpu.accelY(), 2); Serial.print(" / ");
+  Serial.print(mpu.accelZ(), 2); Serial.print(" g | ");
+
+  // Mostrar giro en X, Y, Z
+  Serial.print("Giro [X,Y,Z]: ");
+  Serial.print(mpu.gyroX(), 2); Serial.print(" / ");
+  Serial.print(mpu.gyroY(), 2); Serial.print(" / ");
+  Serial.println(mpu.gyroZ(), 2); // °/s
+
+  // Actualizar variables usadas para dirección
+  anguloInclinacion = mpu.accelX(); // puedes cambiar esto si quieres otro eje
+  anguloRobot = mpu.gyroZ();
+
+  // Si detecta obstáculo y no está retrocediendo
+  if (distance <= distanciaUmbral && distance > 0 && !retrocediendo) {
+    digitalWrite(ledPin, HIGH);
+    duracionAvance = millis() - tiempoInicioAvance;
+    Serial.print("Retrocediendo por: ");
+    Serial.print(duracionAvance);
+    Serial.println(" ms");
+    retroceder(duracionAvance);
+    retrocediendo = true;
+    avanzando = false;
+  }
+  else if (distance > distanciaUmbral && !retrocediendo) {
+    digitalWrite(ledPin, LOW);
+
+    if (!avanzando) {
+      tiempoInicioAvance = millis(); // Inicia conteo
+      avanzando = true;
+    }
+
+    ajustarDireccion();
+    avanzar();
+  }
+
+  delay(100);
+}
+
+// ——— Corrección de dirección ———
+void ajustarDireccion() {
+  if (anguloRobot > 5) {
+    velocidadMotorB = 200;
+    velocidadMotorA = 200;
+  } else if (anguloRobot < -5) {
+    velocidadMotorA = 200;
+    velocidadMotorB = 200;
+  } else {
+    velocidadMotorA = 200;
+    velocidadMotorB = 200;
+  }
+}
+
+// ——— Movimiento hacia adelante ———
+void avanzar() {
+  digitalWrite(A_IN1, LOW);
+  digitalWrite(A_IN2, HIGH);
+  analogWrite(A_ENA, velocidadMotorA);
+
+  digitalWrite(B_IN3, LOW);
+  digitalWrite(B_IN4, HIGH);
+  analogWrite(B_ENB, velocidadMotorB);
+}
+
+// ——— Movimiento hacia atrás por duración ———
+void retroceder(unsigned long duracion) {
+  digitalWrite(A_IN1, HIGH);
+  digitalWrite(A_IN2, LOW);
+  analogWrite(A_ENA, velocidadMotorA);
+
+  digitalWrite(B_IN3, HIGH);
+  digitalWrite(B_IN4, LOW);
+  analogWrite(B_ENB, velocidadMotorB);
+
+  delay(duracion); // Retrocede exactamente el mismo tiempo
+
+  detener(); // Detiene el robot
+}
+
+// ——— Detener motores ———
+void detener() {
+  analogWrite(A_ENA, 0);
+  analogWrite(B_ENB, 0);
+  retrocediendo = false;
+  Serial.println("Robot detenido y listo para avanzar.");
+}

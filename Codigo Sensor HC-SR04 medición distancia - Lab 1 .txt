@@ -1,0 +1,244 @@
+#include <Wire.h>
+#include <MPU9250_asukiaaa.h>
+
+
+// ——— Pines del HC-SR04 ———
+const int trigPin = 9;
+const int echoPin = 8;
+const int distanciaUmbral = 20; // cm
+
+
+// ——— Pines del L298N para Motores ———
+// Motor A
+const int A_IN1 = 7;
+const int A_IN2 = 6;
+const int A_ENA = 3; // PWM
+
+
+// Motor B
+const int B_IN3 = 5;
+const int B_IN4 = 4;
+const int B_ENB = 11; // PWM
+
+
+// ——— Objeto del sensor MPU-9250 ———
+MPU9250_asukiaaa mpu;
+
+
+// ——— Variables de control ———
+const float baseVelocidadDerecha = 220;  // Velocidad base sin corrección
+const float baseVelocidadIzquierda = 230;
+float velocidadMotorDerecho = baseVelocidadDerecha;
+float velocidadMotorIzquierdo = baseVelocidadIzquierda;
+
+
+// ——— Para control de ángulo absoluto ———
+float absoluteYaw = 0;         // Ángulo integrado total
+float initialYaw = 0;          // Ángulo de referencia al iniciar movimiento
+bool moving = false;           // Indica si está avanzando
+bool movementStarted = false;  // Detecta el arranque del movimiento
+
+
+// ——— Biases (sesgos) de sensores ———
+float AccBiasX = 0, AccBiasY = 0, AccBiasZ = 0;
+float GyroErrorZ = 0;
+
+
+// ——— Tiempo e intervalos ———
+unsigned long tiempoAnteriorAngulo = 0;
+const unsigned long intervaloAngulo = 50; // ms
+const float umbralGiro = 1.0;            // umbral mínimo para corregir (grados)
+const float factorCorreccion = 1;      // ganancia de corrección
+
+
+// ——— Variables para integración de giroscopio y acelerómetro ———
+float AccX, AccY, AccZ;
+float GyroZ;
+float velX = 0, velY = 0, velZ = 0;
+float previousTime = 0;
+
+
+void setup() {
+  Serial.begin(9600);
+
+
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+
+
+  pinMode(A_IN1, OUTPUT); pinMode(A_IN2, OUTPUT); pinMode(A_ENA, OUTPUT);
+  pinMode(B_IN3, OUTPUT); pinMode(B_IN4, OUTPUT); pinMode(B_ENB, OUTPUT);
+
+
+  Wire.begin();
+  mpu.setWire(&Wire);
+  mpu.beginAccel();
+  mpu.beginGyro();
+  mpu.beginMag(); // Habilita el magnetómetro para mejor precisión
+
+
+  if (!mpu.accelUpdate() || !mpu.gyroUpdate()) {
+    Serial.println("No se detecta el MPU-9250");
+  } else {
+    Serial.println("MPU-9250 detectado correctamente");
+  }
+
+
+  // Calibración de sesgos
+  calcularError();
+  delay(100);
+
+
+  tiempoAnteriorAngulo = millis();
+  previousTime = micros();
+}
+
+
+void loop() {
+  // ——— Leer sensores ———
+  mpu.accelUpdate();
+  mpu.gyroUpdate();
+  AccX = mpu.accelX() - AccBiasX;
+  AccY = mpu.accelY() - AccBiasY;
+  AccZ = mpu.accelZ() - AccBiasZ;
+  GyroZ = mpu.gyroZ() - GyroErrorZ;
+
+
+  // ——— Calcular dt ———
+  float currentTime = micros();
+  float elapsedTime = (currentTime - previousTime) / 1e6;
+  previousTime = currentTime;
+
+
+  // ——— Integrar sólo SI ya estamos moviéndonos ———
+  if (movementStarted) {
+    absoluteYaw += GyroZ * elapsedTime;
+  }
+
+
+  // ——— Medir distancia y decidir si DEBE moverse ———
+  long distancia = medirDistancia();
+  Serial.print("Distancia: ");
+  Serial.print(distancia);
+  Serial.println(" cm");
+  bool shouldMove = (distancia > distanciaUmbral && distancia > 0);
+
+
+  // ——— Capturar el ángulo inicial JUSTO al arrancar ———
+  if (shouldMove && !movementStarted) {
+    initialYaw = absoluteYaw;
+    movementStarted = true;
+    Serial.print("Movimiento iniciado. Ángulo inicial = ");
+    Serial.println(initialYaw, 2);
+  }
+ 
+  // ——— Si dejamos de movernos, resetear para la próxima ———
+  if (!shouldMove && movementStarted) {
+    movementStarted = false;
+    // Resetear velocidades a valores base
+    velocidadMotorDerecho = baseVelocidadDerecha;
+    velocidadMotorIzquierdo = baseVelocidadIzquierda;
+  }
+
+
+  // ——— Corrección periódica mientras avancemos ———
+  if (movementStarted && millis() - tiempoAnteriorAngulo >= intervaloAngulo) {
+    float error = absoluteYaw - initialYaw;
+    Serial.print("Error vs inicial: ");
+    Serial.println(error, 2);
+    if (abs(error) > umbralGiro) {
+      ajustarVelocidades(error);
+    }
+    tiempoAnteriorAngulo = millis();
+  }
+
+
+  // ——— Mandar orden a motores ———
+  if (shouldMove) {
+    avanzar();
+  } else {
+    detener();
+  }
+
+
+  delay(50);
+}
+
+
+// ——— Funciones auxiliares ———
+
+
+long medirDistancia() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  long dur = pulseIn(echoPin, HIGH, 30000);
+  return dur * 0.0344 / 2;
+}
+
+
+void avanzar() {
+  digitalWrite(A_IN1, LOW);
+  digitalWrite(A_IN2, HIGH);
+  analogWrite(A_ENA, (int)velocidadMotorDerecho);
+  digitalWrite(B_IN3, LOW);
+  digitalWrite(B_IN4, HIGH);
+  analogWrite(B_ENB, (int)velocidadMotorIzquierdo);
+}
+
+
+void detener() {
+  analogWrite(A_ENA, 0);
+  analogWrite(B_ENB, 0);
+}
+
+
+void ajustarVelocidades(float error) {
+  // Reiniciar a velocidades base antes de aplicar nueva corrección
+  velocidadMotorDerecho = baseVelocidadDerecha;
+  velocidadMotorIzquierdo = baseVelocidadIzquierda;
+ 
+  float correccion = abs(error) * factorCorreccion;
+
+
+  if (error > 0) {
+    Serial.println("Corrigiendo a la izquierda");
+    velocidadMotorDerecho += correccion;
+    velocidadMotorIzquierdo -= correccion;
+  } else {
+    Serial.println("Corrigiendo a la derecha");
+    velocidadMotorDerecho -= correccion;
+    velocidadMotorIzquierdo += correccion;
+  }
+
+
+  // Limitar las velocidades para no exceder los límites PWM
+  velocidadMotorDerecho = constrain(velocidadMotorDerecho, 50, 245);
+  velocidadMotorIzquierdo = constrain(velocidadMotorIzquierdo, 60, 255);
+
+
+  Serial.print("Vel D: "); Serial.print(velocidadMotorDerecho);
+  Serial.print(" | Vel I: "); Serial.println(velocidadMotorIzquierdo);
+}
+
+
+void calcularError() {
+  Serial.println("Calibrando sensores...");
+  float sumAX = 0, sumAY = 0, sumAZ = 0, sumGZ = 0;
+  const int N = 500;
+  for (int i = 0; i < N; i++) {
+    mpu.accelUpdate(); mpu.gyroUpdate();
+    sumAX += mpu.accelX();
+    sumAY += mpu.accelY();
+    sumAZ += mpu.accelZ();
+    sumGZ += mpu.gyroZ();
+    delay(5);
+  }
+  AccBiasX = sumAX / N;
+  AccBiasY = sumAY / N;
+  AccBiasZ = sumAZ / N;
+  GyroErrorZ = sumGZ / N;
+  Serial.println("Calibración completada.");
+}

@@ -1,0 +1,130 @@
+// ——— Pines del HC-SR04 ———
+const int trigPin = 9;
+const int echoPin = 8;
+const int distanciaUmbral = 20; // cm
+
+// ——— Pines del L298N para Motores ———
+// Motor A
+const int A_IN1 = 7;
+const int A_IN2 = 6;
+const int A_ENA = 3; // PWM
+
+// Motor B
+const int B_IN3 = 5;
+const int B_IN4 = 4;
+const int B_ENB = 11; // PWM
+
+// ——— Variables de control ———
+int velocidadMotorA = 255;  // Máxima velocidad
+int velocidadMotorB = 255;  // Máxima velocidad
+
+// ——— Tiempo y control ———
+int tiempo = 1000;
+bool lol = true;
+unsigned long tiempoAnterior = 0;
+
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+
+  pinMode(A_IN1, OUTPUT);
+  pinMode(A_IN2, OUTPUT);
+  pinMode(A_ENA, OUTPUT);
+
+  pinMode(B_IN3, OUTPUT);
+  pinMode(B_IN4, OUTPUT);
+  pinMode(B_ENB, OUTPUT);
+}
+
+void loop() {
+  if (lol) {
+    delay(tiempo * 3);
+
+    // Avanzar
+    avanzar();
+    delay(tiempo);
+
+    // Retroceder
+    atras();
+    delay(tiempo);
+
+    // Girar a la derecha
+    girarDerecha();
+    delay(tiempo);
+
+    // Avanzar
+    avanzar();
+    delay(tiempo);
+
+    // Retroceder
+    atras();
+    delay(tiempo);
+
+    // Girar a la izquierda
+    girarIzquierda();
+    delay(tiempo);
+
+    // Detener motores
+    detener();
+
+    lol = false;
+  } else {
+    // Asegurarse de que el robot permanezca detenido
+    detener();
+    while (true);  // Detener ejecución completamente
+  }
+}
+
+// ——— Funciones de movimiento ———
+void avanzar() {
+  digitalWrite(A_IN1, LOW);
+  digitalWrite(A_IN2, HIGH);
+  analogWrite(A_ENA, velocidadMotorA);
+
+  digitalWrite(B_IN3, LOW);
+  digitalWrite(B_IN4, HIGH);
+  analogWrite(B_ENB, velocidadMotorB);
+}
+
+void atras() {
+  digitalWrite(A_IN1, HIGH);
+  digitalWrite(A_IN2, LOW);
+  analogWrite(A_ENA, velocidadMotorA);
+
+  digitalWrite(B_IN3, HIGH);
+  digitalWrite(B_IN4, LOW);
+  analogWrite(B_ENB, velocidadMotorB);
+}
+
+void girarDerecha() {
+  digitalWrite(A_IN1, LOW);
+  digitalWrite(A_IN2, HIGH);
+  analogWrite(A_ENA, velocidadMotorA);
+
+  digitalWrite(B_IN3, HIGH);
+  digitalWrite(B_IN4, LOW);
+  analogWrite(B_ENB, velocidadMotorB);
+}
+
+void girarIzquierda() {
+  digitalWrite(A_IN1, HIGH);
+  digitalWrite(A_IN2, LOW);
+  analogWrite(A_ENA, velocidadMotorA);
+
+  digitalWrite(B_IN3, LOW);
+  digitalWrite(B_IN4, HIGH);
+  analogWrite(B_ENB, velocidadMotorB);
+}
+
+void detener() {
+  // Apagar ambos motores
+  digitalWrite(A_IN1, LOW);
+  digitalWrite(A_IN2, LOW);
+  analogWrite(A_ENA, 0);
+
+  digitalWrite(B_IN3, LOW);
+  digitalWrite(B_IN4, LOW);
+  analogWrite(B_ENB, 0);
+}
